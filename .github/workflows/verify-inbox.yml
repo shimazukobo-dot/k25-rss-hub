@@ -1,0 +1,32 @@
+name: Verify inbox
+
+# k25-inbox.html を Chromium で file:// として開き、GitHub上のデータを読めるか確認する
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - k25-inbox.html
+      - tests/browser_check.js
+      - .github/workflows/verify-inbox.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm install --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+      - run: node tests/browser_check.js screenshot.png
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: "*.png"
+          if-no-files-found: ignore

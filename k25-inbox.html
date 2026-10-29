@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K25 Inbox</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23111'/><rect x='6' y='8' width='20' height='3' rx='1' fill='%23d19a2e'/><rect x='6' y='14' width='14' height='2' rx='1' fill='%23777'/><rect x='6' y='19' width='17' height='2' rx='1' fill='%23777'/><path d='M22 19l5 3-5 3z' fill='%23d19a2e'/></svg>">
+<style>
+:root{
+  --bg:#0f0f10;--sf:#17171a;--sf2:#202024;--bd:#2c2c31;
+  --tx:#e8e3da;--tx2:#a8a39b;--tx3:#6e6a63;
+  --ac:#d19a2e;--acs:rgba(209,154,46,.14);--ok:#62a874;--ng:#cf5c55;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:system-ui,"Segoe UI","Yu Gothic UI","Meiryo","Hiragino Sans",sans-serif;background:var(--bg);color:var(--tx);display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+button{font:inherit;color:inherit}
+header{display:flex;align-items:center;gap:10px;padding:0 16px;height:54px;background:var(--sf);border-bottom:1px solid var(--bd);flex-shrink:0}
+.logo{font-weight:700;letter-spacing:.02em;color:var(--ac);font-size:17px;white-space:nowrap}
+.logo span{color:var(--tx2);font-weight:400}
+#tabs{display:flex;gap:2px;margin-left:14px}
+#tabs button{background:none;border:none;padding:8px 12px;border-radius:6px;color:var(--tx2);cursor:pointer;white-space:nowrap}
+#tabs button:hover{background:var(--sf2);color:var(--tx)}
+#tabs button.on{background:var(--acs);color:var(--ac)}
+#tabs b{font-weight:600;margin-left:4px;font-variant-numeric:tabular-nums}
+.sp{flex:1}
+.btn{background:var(--sf2);border:1px solid var(--bd);padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;font-size:13px}
+.btn:hover{border-color:var(--ac);color:var(--ac)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#111;font-weight:600}
+.btn.pri:hover{filter:brightness(1.1);color:#111}
+.btn.sm{padding:4px 9px;font-size:12px}
+a.btn{text-decoration:none;display:inline-block}
+code{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;background:var(--sf2);padding:0 4px;border-radius:3px}
+.btn.ng:hover{border-color:var(--ng);color:var(--ng)}
+#prog{height:2px;flex-shrink:0}#prog-bar{height:100%;width:0;background:var(--ac);transition:width .2s}
+#layout{flex:1;display:flex;min-height:0}
+aside{width:230px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+.sh{padding:10px 14px 6px;font-size:11px;color:var(--tx3);letter-spacing:.08em}
+#flist{flex:1;overflow-y:auto;padding-bottom:10px}
+.fi{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;border-left:2px solid transparent}
+.fi:hover{background:var(--sf2)}
+.fi.on{background:var(--acs);border-left-color:var(--ac)}
+.fdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.fi.bad .fn{color:var(--ng)}
+.fc{font-size:11px;color:var(--tx2);font-variant-numeric:tabular-nums}
+main{flex:1;overflow-y:auto;min-width:0}
+#list{max-width:880px;margin:0 auto;padding:6px 0 60px}
+.row{padding:14px 22px 12px;border-bottom:1px solid var(--bd);cursor:default;transition:opacity .16s,transform .16s}
+.row:hover{background:rgba(255,255,255,.015)}
+.row.focus{background:var(--sf2);box-shadow:inset 3px 0 0 var(--ac)}
+.row.gone{opacity:0;transform:translateX(24px)}
+.row.pending{opacity:.55}
+.meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx3);margin-bottom:5px}
+.meta .src{color:var(--tx2);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ttl{font-size:15.5px;font-weight:600;line-height:1.5;margin-bottom:5px}
+.lead{font-size:13px;line-height:1.75;color:var(--tx2)}
+.tag{display:inline-block;font-size:10px;padding:0 5px;border-radius:3px;background:var(--acs);color:var(--ac);margin-right:6px;vertical-align:1px;letter-spacing:.04em}
+.acts{display:flex;gap:8px;margin-top:9px}
+.acts .send{background:var(--ac);border:none;color:#111;font-weight:600;padding:5px 14px;border-radius:5px;cursor:pointer;font-size:12.5px}
+.acts .send:hover{filter:brightness(1.1)}
+.acts .skip,.acts .back{background:none;border:1px solid var(--bd);color:var(--tx2);padding:4px 12px;border-radius:5px;cursor:pointer;font-size:12.5px}
+.acts .skip:hover,.acts .back:hover{border-color:var(--tx3);color:var(--tx)}
+.stamp{font-size:11px;color:var(--tx3);margin-left:auto;align-self:center}
+.empty{text-align:center;padding:90px 30px;color:var(--tx2);line-height:1.9}
+.empty .big{font-size:40px;opacity:.25;margin-bottom:8px}
+.more{display:block;margin:18px auto}
+footer{display:flex;gap:16px;align-items:center;padding:5px 16px;background:var(--sf);border-top:1px solid var(--bd);font-size:11.5px;color:var(--tx3);flex-shrink:0}
+#st-msg{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx2)}
+#st-fail{color:var(--ng);cursor:pointer}
+.kbd{color:var(--tx3)}
+kbd{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;border:1px solid var(--bd);border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--tx2)}
+#toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(10px);background:#2c2c31;color:var(--tx);padding:9px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s;z-index:50;box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%)}
+dialog{margin:auto;background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:10px;width:640px;max-width:94vw;max-height:88vh;padding:0}
+dialog::backdrop{background:rgba(0,0,0,.7)}
+.dh{display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--sf);z-index:1}
+.dh h2{font-size:16px;flex:1}
+.sec{padding:16px 20px;border-bottom:1px solid var(--bd)}
+.sec h3{font-size:13px;color:var(--ac);margin-bottom:10px;letter-spacing:.03em}
+.note{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:10px}
+.opt{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13px;line-height:1.6;cursor:pointer}
+.opt input{margin-top:4px}
+.opt small{color:var(--tx3);display:block}
+.fld{display:flex;gap:8px;margin:8px 0;align-items:center}
+.fld label{width:92px;font-size:12px;color:var(--tx2);flex-shrink:0}
+input[type=text],input[type=password],input[type=email]{flex:1;min-width:0;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:7px 10px;color:var(--tx);font:inherit;font-size:13px;outline:none}
+input:focus{border-color:var(--ac)}
+.res{font-size:12px;margin-top:6px;min-height:16px}
+.res.ok{color:var(--ok)}.res.ng{color:var(--ng)}
+#fm-list{max-height:260px;overflow-y:auto;border:1px solid var(--bd);border-radius:6px;margin-top:10px}
+.fm{display:flex;gap:10px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--bd);font-size:12.5px}
+.fm:last-child{border-bottom:none}
+.fm .nm{flex:1;min-width:0}
+.fm .nm div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fm .u{color:var(--tx3);font-size:11px}
+.fm .s{font-size:11px;white-space:nowrap}
+.fm .s.ok{color:var(--ok)}.fm .s.ng{color:var(--ng)}.fm .s.na{color:var(--tx3)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">K25 <span>Inbox</span></div>
+  <nav id="tabs">
+    <button data-tab="new" class="on">新着<b id="c-new">0</b></button>
+    <button data-tab="sent">K25へ送信済み<b id="c-sent">0</b></button>
+    <button data-tab="skip">見送り<b id="c-skip">0</b></button>
+  </nav>
+  <div class="sp"></div>
+  <button class="btn" id="b-refresh" title="GitHubに用意された最新データを読み込む">↻ 更新</button>
+  <button class="btn" id="b-done" title="表示中の新着をすべて見送りにする">✓ 残りを見送り</button>
+  <button class="btn" id="b-settings">⚙ 設定</button>
+</header>
+<div id="prog"><div id="prog-bar"></div></div>
+<div id="layout">
+  <aside>
+    <div class="sh">フィード</div>
+    <div id="flist"></div>
+  </aside>
+  <main id="main"><div id="list"></div></main>
+</div>
+<footer>
+  <span id="st-msg">準備完了</span>
+  <span id="st-fail"></span>
+  <span id="st-ai"></span>
+  <span class="kbd"><kbd>J</kbd><kbd>K</kbd> 移動 <kbd>S</kbd> 送る <kbd>X</kbd> 見送り</span>
+</footer>
+<div id="toast"></div>
+
+<dialog id="dlg">
+  <div class="dh"><h2>設定</h2><button class="btn sm" id="dlg-close">閉じる</button></div>
+
+  <div class="sec">
+    <h3>Instapaper（K25）への送り方</h3>
+    <label class="opt"><input type="radio" name="mode" value="popup">
+      <span>確認画面方式<small>ボタンを押すと小さな画面が開き、Instapaperで保存を確定します（2クリック）。パスワードの保存は不要です。</small></span></label>
+    <label class="opt"><input type="radio" name="mode" value="api">
+      <span>直接送信方式<small>ボタン1回で送信が完了します。Instapaperのログイン情報を、このChromeの中にだけ保存します。</small></span></label>
+    <div id="api-box">
+      <div class="fld"><label>メール</label><input type="email" id="ip-user" placeholder="shima.kin25@gmail.com" autocomplete="off"></div>
+      <div class="fld"><label>パスワード</label><input type="password" id="ip-pass" placeholder="（未設定なら空欄）" autocomplete="new-password"></div>
+      <div class="btns"><button class="btn sm" id="ip-test">接続テスト</button></div>
+      <div class="res" id="ip-res"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h3>要約</h3>
+    <label class="opt"><input type="checkbox" id="ai-on">
+      <span>Chrome内蔵AIで要約する<small>無料・端末内で処理し、記事の内容は外部に送られません。使えない環境では、自動で冒頭の1〜2文を表示します。</small></span></label>
+    <div class="btns"><button class="btn sm" id="ai-setup">AIを準備する</button></div>
+    <div class="res" id="ai-res"></div>
+  </div>
+
+  <div class="sec">
+    <h3>フィード</h3>
+    <p class="note">各フィードはGitHub Actionsが20分ごとに取得しています。このPCはGitHub上のデータを1つ読むだけで、各サイトや公開proxyには接続しません（GitHubへのログインも不要です）。<br>
+      フィードの追加・削除は、GitHubの <code>feeds.opml</code> を編集してください（自宅PCやスマホなど、GitHubにログインできる端末から）。保存すると数分でここに反映されます。</p>
+    <div class="res" id="src-res"></div>
+    <div id="fm-list"></div>
+    <div class="btns">
+      <a class="btn sm" id="b-edit-opml" target="_blank" rel="noopener">GitHubでフィード一覧を編集</a>
+      <button class="btn sm" id="b-export">OPMLに書き出し（バックアップ）</button>
+      <button class="btn sm ng" id="b-cleanold" title="旧版の記事データと「あとで読む」を削除して保存容量を空けます（フィード登録は残します）">旧版の記事データを削除</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+/* ========== 定数 ========== */
+const K={feeds:'k25rss_feeds_v1',arts:'k25rss_arts_v1',cfg:'k25rss_cfg_v1',meta:'k25rss_meta_v1'};
+const OLD={feeds:'rss_feeds_v5',arts:'rss_arts_v5',later:'rss_later_v5'};
+const COLORS=['#d19a2e','#4a9eca','#7eb87a','#ca6a4a','#9a7eca','#ca4a7e','#4acab4','#dba05a','#6aacca','#b0ca6a','#ca8a5a','#a87eca'];
+const DAY=864e5;
+const MAX_ARTS=2000;       // 保存する記事の上限
+const TIMEOUT=20000;       // 1つの取得元の待ち上限（データは1MB前後）
+const FIRST_WINDOW=3*DAY;  // 初回取得時、これより古い記事は新着にしない
+const KEEP=45*DAY;         // 送信済み・見送りを保持する期間
+const PAGE=150;            // 一度に表示する件数
+const AUTO_REFRESH=10*60e3;// 開いたとき・開いている間、前回更新からこれ以上経っていれば自動更新
+
+/* ========== 状態 ========== */
+let feeds=[],arts=[],cfg={},meta={};
+let tab='new',curF='all',busy=false,focusIdx=-1,shown=PAGE;
+const summarizers={};let aiState='off';
+
+/* ========== 保存 ========== */
+const $=s=>document.querySelector(s);
+function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v??d;}catch(e){return d;}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}
+  catch(e){toast('保存容量が不足しています。設定の「旧版の記事データを削除」を試してください');return false;}}
+const saveFeeds=()=>store(K.feeds,feeds),saveArts=()=>store(K.arts,arts),saveCfg=()=>store(K.cfg,cfg),saveMeta=()=>store(K.meta,meta);
+
+/* ========== 取得（GitHub Actions が生成した静的データを1回読むだけ） ========== */
+// 各RSSサイトや公開CORS proxyには接続しない。GitHub Actions が20分ごとに
+// feeds.opml の全フィードを取得し、結果を data ブランチに置いている。
+// 上から順に試し、最初に読めた1つだけを使う（前回成功した取得元を先頭にする）。
+const REPO='shimazukobo-dot/k25-rss-hub';
+const DATA_SOURCES=[
+  {n:'GitHub raw',u:`https://raw.githubusercontent.com/${REPO}/data/public/feed-data.json`},
+  {n:'GitHub Pages',u:'https://shimazukobo-dot.github.io/k25-rss-hub/public/feed-data.json'},
+  {n:'jsDelivr',u:`https://cdn.jsdelivr.net/gh/${REPO}@data/public/feed-data.json`},
+  // fetch() 自体が使えない環境向け。<script> で読むので CORS に依存しない
+  {n:'jsDelivr(script)',js:`https://cdn.jsdelivr.net/gh/${REPO}@data/public/feed-data.js`},
+];
+const OPML_EDIT_URL=`https://github.com/${REPO}/edit/main/feeds.opml`;
+const STALE=2*3600e3;      // データの生成からこれ以上経っていたら警告する
+async function fetchJson(url){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),TIMEOUT);
+  try{
+    const r=await fetch(url,{signal:c.signal,cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return await r.json();
+  }finally{clearTimeout(t);}
+}
+function loadScript(url){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    const done=()=>{clearTimeout(t);s.remove();};
+    const t=setTimeout(()=>{done();rej(new Error('timeout'));},TIMEOUT);
+    delete window.K25_FEED_DATA;
+    s.onload=()=>{done();window.K25_FEED_DATA?res(window.K25_FEED_DATA):rej(new Error('empty'));};
+    s.onerror=()=>{done();rej(new Error('network'));};
+    s.src=url+(url.includes('?')?'&':'?')+'t='+Math.floor(Date.now()/60e3);
+    document.head.appendChild(s);
+  });
+}
+async function loadData(){
+  const pref=DATA_SOURCES.find(s=>s.n===meta.src);
+  const order=pref?[pref,...DATA_SOURCES.filter(s=>s!==pref)]:DATA_SOURCES;
+  const errors=[];
+  for(const s of order){
+    try{
+      const d=s.js?await loadScript(s.js):await fetchJson(s.u);
+      if(!d||d.v!==1||!Array.isArray(d.feeds))throw new Error('形式が違います');
+      meta.src=s.n;meta.srcErr='';
+      return d;
+    }catch(e){
+      errors.push(`${s.n}: ${e?.name==='AbortError'?'timeout':(e?.message||e?.name||'error')}`);
+    }
+  }
+  meta.srcErr=errors.join(' / ').slice(0,500);
+  return null;
+}
+
+/* ========== 表示用テキスト ========== */
+function leadOf(x){
+  if(!x)return'';
+  if(x.length<=140)return x;
+  const cut=x.slice(0,170);
+  let end=-1;
+  for(const m of cut.matchAll(/[。！？!?]|\.\s/g)){if(m.index>=50)end=m.index+1;}
+  return end>0?cut.slice(0,end).trim():x.slice(0,140).trim()+'…';
+}
+
+/* ========== 記事の統合 ========== */
+function merge(f,items,first){
+  const have=new Set(arts.map(a=>a.id)),now=Date.now();let n=0;
+  const links=new Set(arts.filter(a=>a.fid===f.id&&a.l).map(a=>a.l));
+  for(const it of items){
+    const id=f.id+'|'+it.key;
+    if(have.has(id)||(it.l&&links.has(it.l)))continue;
+    if(it.d&&it.d<now-KEEP)continue;
+    const st=first&&it.d&&it.d<now-FIRST_WINDOW?'skip':'new';
+    arts.push({id,fid:f.id,t:it.t,l:it.l,d:it.d||now,x:st==='new'?it.x:'',st,ts:now});
+    have.add(id);if(it.l)links.add(it.l);if(st==='new')n++;
+  }
+  return n;
+}
+function prune(){
+  const now=Date.now(),alive=new Set(feeds.map(f=>f.id));
+  arts=arts.filter(a=>alive.has(a.fid)&&(a.st==='new'||a.ts>now-KEEP));
+  for(const a of arts){if(a.st!=='new'&&a.ts<now-3*DAY){a.x='';delete a.s;}}
+  if(arts.length>MAX_ARTS){
+    arts.sort((a,b)=>(a.st==='new')-(b.st==='new')||a.ts-b.ts);
+    arts=arts.slice(arts.length-MAX_ARTS);
+  }
+}
+
+/* ========== 更新 ========== */
+// フィード一覧は GitHub の feeds.opml が正。データに含まれるフィードに合わせて、
+// URLが同じものは既存の id・色・記事状態を引き継ぐ。
+function syncFeeds(list){
+  const byUrl=new Map(feeds.map(f=>[f.url,f]));const next=[];
+  for(const s of list){
+    let f=byUrl.get(s.u);
+    if(!f)f={id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),url:s.u,color:COLORS[(feeds.length+next.length)%COLORS.length]};
+    f.name=(s.n&&s.n!==s.u?s.n:s.ft)||s.u;
+    f.home=s.h||'';
+    next.push(f);
+  }
+  feeds=next;
+}
+function apply(f,s){
+  const first=!f.lastOk&&!f.merged;
+  const n=merge(f,(s.i||[]).map(x=>({key:x.k,t:x.t||'(無題)',l:x.l||'',d:x.d||0,x:x.x||''})),first);
+  f.merged=1;
+  if(s.lo)f.lastOk=s.lo;
+  f.err=s.ok?'':'取得失敗';f.diag=s.ok?'':(s.e||'');
+  return n;
+}
+async function refresh(){
+  if(busy)return;
+  busy=true;$('#b-refresh').disabled=true;$('#prog-bar').style.width='30%';
+  status('GitHubからデータを読み込み中…');
+  const d=await loadData();
+  if(!d){
+    busy=false;$('#b-refresh').disabled=false;$('#prog-bar').style.width='0';
+    meta.lastTry=Date.now();saveMeta();render(true);
+    status('GitHubのデータを読み込めませんでした（⚙ 設定に詳細）');
+    toast('GitHubのデータを読み込めませんでした');
+    return;
+  }
+  $('#prog-bar').style.width='80%';
+  syncFeeds(d.feeds);
+  const fm=new Map(feeds.map(f=>[f.url,f]));let added=0,ok=0;
+  for(const s of d.feeds){const f=fm.get(s.u);if(!f)continue;added+=apply(f,s);if(s.ok)ok++;}
+  prune();saveFeeds();saveArts();
+  meta.lastRefresh=Date.now();meta.generated=d.generated;saveMeta();
+  busy=false;$('#b-refresh').disabled=false;$('#prog-bar').style.width='0';
+  render(true);
+  status(`更新完了 ${new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}・新着 ${added}件・取得成功 ${ok}/${d.feeds.length}・${dataAge()}`);
+  if(Date.now()-d.generated>STALE)toast('GitHub側のデータが'+rel(d.generated)+'から更新されていません');
+  queueSummaries();
+}
+function dataAge(){
+  if(!meta.generated)return'';
+  const s=`データ生成 ${rel(meta.generated)}（${meta.src||''}）`;
+  return Date.now()-meta.generated>STALE?'⚠ '+s:s;
+}
+
+/* ========== フィード管理 ========== */
+function exportOpml(){
+  const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const body=feeds.map(f=>`    <outline type="rss" text="${xe(f.name)}" title="${xe(f.name)}" xmlUrl="${xe(f.url)}"/>`).join('\n');
+  const s=`<?xml version="1.0" encoding="UTF-8"?>\n<opml version="2.0">\n  <head><title>K25 Inbox feeds</title></head>\n  <body>\n${body}\n  </body>\n</opml>\n`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([s],{type:'text/xml'}));
+  a.download='k25-feeds-'+new Date().toISOString().slice(0,10)+'.opml';
+  a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+/* ========== Instapaper ========== */
+function sendPopup(a){
+  const u='https://www.instapaper.com/hello2?url='+encodeURIComponent(a.l)+'&title='+encodeURIComponent(a.t);
+  const w=window.open(u,'k25ip','width=560,height=660');
+  if(!w){toast('ポップアップがブロックされました。アドレスバー右端から許可してください');return false;}
+  return true;
+}
+function ipApi(path,params){
+  return new Promise((res,rej)=>{
+    const cb='k25cb'+Date.now()+Math.floor(Math.random()*1e6),s=document.createElement('script');
+    const done=()=>{clearTimeout(t);delete window[cb];s.remove();};
+    const t=setTimeout(()=>{done();rej(new Error('timeout'));},10000);
+    window[cb]=d=>{done();res(d);};
+    s.onerror=()=>{done();rej(new Error('network'));};
+    s.src='https://www.instapaper.com/api/'+path+'?'+new URLSearchParams({...params,jsonp:cb});
+    document.head.appendChild(s);
+  });
+}
+const ipStatus=d=>Number(d&&typeof d==='object'?d.status:d);
+async function sendApi(a){
+  try{
+    const st=ipStatus(await ipApi('add',{username:cfg.ipUser,password:cfg.ipPass||'',url:a.l,title:a.t}));
+    if(st===201||st===200)return true;
+    toast(st===403?'Instapaperのログイン情報が違います（設定を確認してください）':'Instapaperへの送信に失敗しました（'+st+'）');
+  }catch(e){toast('Instapaperに接続できませんでした。設定で「確認画面方式」に切り替えてください');}
+  return false;
+}
+
+/* ========== 要約（Chrome内蔵AI） ========== */
+const isJa=s=>/[\u3040-\u30ff\u4e00-\u9fff]/.test(s);
+async function aiAvail(){
+  if(!('Summarizer' in self))return'unsupported';
+  try{return await Summarizer.availability();}catch(e){return'unsupported';}
+}
+async function getSummarizer(lang,gesture){
+  if(summarizers[lang])return summarizers[lang];
+  const av=await aiAvail();
+  if(av==='unsupported'||av==='unavailable'){aiState='unavailable';updAi();return null;}
+  if(av!=='available'&&!gesture){aiState='setup';updAi();return null;}
+  const monitor=m=>m.addEventListener('downloadprogress',e=>{aiState='dl:'+Math.round((e.loaded||0)*100);updAi();});
+  const base={type:'tldr',format:'plain-text',length:'short',monitor};
+  const tries=[
+    {...base,expectedInputLanguages:[lang],outputLanguage:lang,sharedContext:lang==='ja'?'ニュース記事の冒頭部分。要点を1〜2文で。':'The opening of a news article. Summarize in 1-2 sentences.'},
+    base
+  ];
+  for(const o of tries){
+    try{summarizers[lang]=await Summarizer.create(o);aiState='ready';updAi();return summarizers[lang];}catch(e){}
+  }
+  aiState='unavailable';updAi();return null;
+}
+async function aiSetup(){
+  $('#ai-res').className='res';$('#ai-res').textContent='準備中…（初回はモデルのダウンロードに数分かかることがあります）';
+  const s=await getSummarizer('ja',true);
+  if(s){await getSummarizer('en',true);$('#ai-res').className='res ok';$('#ai-res').textContent='✓ 要約を使えます';cfg.ai=true;saveCfg();$('#ai-on').checked=true;queueSummaries();}
+  else{$('#ai-res').className='res ng';$('#ai-res').textContent='このPCでは内蔵AIを使えません（性能や会社の設定によるものです）。冒頭の1〜2文を表示します。';}
+}
+let sumRunning=false;
+async function queueSummaries(){
+  if(sumRunning||!cfg.ai)return;
+  sumRunning=true;
+  try{
+    let n=0;
+    while(n<60){
+      const vis=visible();
+      const a=vis.find(x=>x.st==='new'&&!x.s&&!x.sf&&x.x&&x.x.length>140);
+      if(!a)break;
+      const lang=isJa(a.t+a.x)?'ja':'en';
+      const sm=await getSummarizer(lang,false);
+      if(!sm)break;
+      try{
+        const out=(await sm.summarize(a.x,{context:a.t})).trim();
+        if(out){a.s=out.replace(/^[-*•]\s*/,'').slice(0,240);updLead(a);}else a.sf=1;
+      }catch(e){a.sf=1;}
+      n++;if(n%5===0)saveArts();
+    }
+    saveArts();
+  }finally{sumRunning=false;}
+}
+function updAi(){
+  const m={off:'',ready:'要約: 内蔵AI',setup:'要約: 設定から準備が必要',unavailable:'要約: 冒頭表示'};
+  $('#st-ai').textContent=aiState.startsWith('dl:')?`要約AIを準備中 ${aiState.slice(3)}%`:(cfg.ai?m[aiState]||'':'');
+}
+
+/* ========== 表示 ========== */
+function visible(){
+  let v=arts.filter(a=>a.st===tab&&(curF==='all'||a.fid===curF));
+  return tab==='new'?v.sort((a,b)=>b.d-a.d):v.sort((a,b)=>b.ts-a.ts);
+}
+function render(keep){
+  if(!keep)focusIdx=-1;
+  const c={new:0,sent:0,skip:0};for(const a of arts)c[a.st]++;
+  for(const k in c)$('#c-'+k).textContent=c[k];
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  $('#b-done').style.display=tab==='new'?'':'none';
+  renderSide();renderList();
+  const bad=feeds.filter(f=>f.err).length;
+  $('#st-fail').textContent=bad?`⚠ 取得できないフィード ${bad}件`:'';
+}
+function renderSide(){
+  const um={};for(const a of arts)if(a.st==='new')um[a.fid]=(um[a.fid]||0)+1;
+  const total=Object.values(um).reduce((s,x)=>s+x,0);
+  let h=`<div class="fi ${curF==='all'?'on':''}" data-f="all"><span class="fdot" style="background:#666"></span><span class="fn">すべて</span><span class="fc">${total||''}</span></div>`;
+  for(const f of feeds){
+    h+=`<div class="fi ${curF===f.id?'on':''} ${f.err?'bad':''}" data-f="${esc(f.id)}" title="${esc(f.err?'取得できません：'+f.url:f.url)}"><span class="fdot" style="background:${f.err?'var(--ng)':f.color}"></span><span class="fn">${esc(f.name)}</span><span class="fc">${um[f.id]||''}</span></div>`;
+  }
+  $('#flist').innerHTML=h;
+}
+function renderList(){
+  const v=visible(),fm=Object.fromEntries(feeds.map(f=>[f.id,f])),el=$('#list');
+  if(!feeds.length){
+    el.innerHTML=`<div class="empty"><div class="big">◎</div>${busy?'GitHubからデータを読み込み中です…':'まだデータを読み込めていません。<br>「↻ 更新」を押してください。読み込めない場合は「⚙ 設定」に原因が表示されます。'}</div>`;return;
+  }
+  if(!v.length){
+    const msg={new:busy?'更新中です…':'新着はありません。<br>「↻ 更新」で最新のデータを読み込みます。',sent:'K25へ送った記事はまだありません。',skip:'見送った記事はありません。'}[tab];
+    el.innerHTML=`<div class="empty"><div class="big">✓</div>${msg}</div>`;return;
+  }
+  const rows=v.slice(0,shown).map(a=>rowHtml(a,fm[a.fid])).join('');
+  el.innerHTML=rows+(v.length>shown?`<button class="btn more" id="b-more">さらに表示（残り ${v.length-shown}件）</button>`:'');
+  if(focusIdx>=0){focusIdx=Math.min(focusIdx,Math.min(v.length,shown)-1);markFocus(false);}
+}
+function leadHtml(a){
+  if(a.s)return`<span class="tag">要約</span>${esc(a.s)}`;
+  return esc(leadOf(a.x));
+}
+function rowHtml(a,f){
+  const acts=a.st==='new'
+    ?`<button class="send" data-act="send">→ K25</button><button class="skip" data-act="skip">見送り</button>`
+    :`<button class="back" data-act="back">新着に戻す</button><span class="stamp">${a.st==='sent'?'送信':'見送り'} ${rel(a.ts)}</span>`;
+  const lead=a.st==='new'?leadHtml(a):'';
+  return`<article class="row" data-id="${esc(a.id)}">
+<div class="meta"><span class="fdot" style="background:${f?f.color:'#666'}"></span><span class="src">${esc(f?f.name:'')}</span><span>${rel(a.d)}</span></div>
+<h3 class="ttl">${esc(a.t)}</h3>${lead?`<p class="lead">${lead}</p>`:''}
+<div class="acts">${acts}</div></article>`;
+}
+function updLead(a){
+  const row=document.querySelector(`.row[data-id="${CSS.escape(a.id)}"]`);if(!row)return;
+  let p=row.querySelector('.lead');
+  if(!p){p=document.createElement('p');p.className='lead';row.querySelector('.ttl').after(p);}
+  p.innerHTML=leadHtml(a);
+}
+function rowsEls(){return[...document.querySelectorAll('#list .row')];}
+function markFocus(scroll=true){
+  const rs=rowsEls();rs.forEach((r,i)=>r.classList.toggle('focus',i===focusIdx));
+  if(scroll&&rs[focusIdx])rs[focusIdx].scrollIntoView({block:'nearest'});
+}
+
+/* ========== 操作 ========== */
+const byId=id=>arts.find(a=>a.id===id);
+function setSt(a,st,row){
+  a.st=st;a.ts=Date.now();saveArts();
+  const rs=rowsEls();focusIdx=Math.max(0,rs.indexOf(row));
+  row.classList.add('gone');
+  setTimeout(()=>{render(true);queueSummaries();},170);
+}
+async function act(kind,a,row){
+  if(kind==='send'){
+    if(!a.l){toast('この記事にはURLがありません');return;}
+    if(cfg.mode==='api'&&cfg.ipUser){
+      row.classList.add('pending');const ok=await sendApi(a);row.classList.remove('pending');
+      if(!ok)return;toast('✓ K25に送りました');
+    }else{
+      if(!sendPopup(a))return;
+    }
+    setSt(a,'sent',row);
+  }else if(kind==='skip')setSt(a,'skip',row);
+  else if(kind==='back')setSt(a,'new',row);
+}
+function skipAllVisible(){
+  const v=visible().filter(a=>a.st==='new');
+  if(!v.length)return;
+  if(!confirm(`表示中の新着 ${v.length}件をすべて見送りにしますか？`))return;
+  const now=Date.now();for(const a of v){a.st='skip';a.ts=now;}
+  saveArts();render();toast(`${v.length}件を見送りにしました`);
+}
+
+/* ========== 設定画面 ========== */
+function openSettings(){
+  document.querySelectorAll('input[name=mode]').forEach(r=>r.checked=r.value===cfg.mode);
+  $('#ip-user').value=cfg.ipUser||'';$('#ip-pass').value=cfg.ipPass||'';
+  $('#api-box').style.display=cfg.mode==='api'?'':'none';
+  $('#ai-on').checked=!!cfg.ai;$('#ip-res').textContent='';
+  aiAvail().then(av=>{
+    const r=$('#ai-res');
+    if(av==='available'){r.className='res ok';r.textContent='✓ このPCで内蔵AIを使えます';}
+    else if(av==='downloadable'||av==='downloading'){r.className='res';r.textContent='「AIを準備する」を押すと使えるようになります（初回のみダウンロード）';}
+    else{r.className='res ng';r.textContent='このPCでは内蔵AIを使えないため、冒頭の1〜2文を表示します';}
+  });
+  renderFeedMgr();$('#dlg').showModal();
+}
+function renderFeedMgr(){
+  const r=$('#src-res');
+  if(meta.srcErr&&(!meta.lastRefresh||(meta.lastTry||0)>meta.lastRefresh)){r.className='res ng';r.textContent='GitHubのデータを読み込めませんでした：'+meta.srcErr;}
+  else if(meta.generated){r.className='res ok';r.textContent=`✓ ${dataAge()}・前回の読み込み ${rel(meta.lastRefresh)}`;}
+  else{r.className='res';r.textContent='';}
+  const el=$('#fm-list');
+  if(!feeds.length){el.innerHTML='<div class="fm"><span class="nm u">まだデータを読み込んでいません</span></div>';return;}
+  const bad=feeds.filter(f=>f.err),good=feeds.filter(f=>!f.err);
+  el.innerHTML=[...bad,...good].map(f=>{
+    const s=f.err?`<span class="s ng" title="${esc(f.diag||'詳細なし')}">取得できません${f.lastOk?'<br>最終成功 '+rel(f.lastOk):''}</span>`:f.lastOk?`<span class="s ok">OK ${rel(f.lastOk)}</span>`:`<span class="s na">未取得</span>`;
+    const d=f.err&&f.diag?`<div class="u" style="color:var(--ng);margin-top:3px">GitHub側での取得結果: ${esc(f.diag)}</div>`:'';
+    return`<div class="fm"><div class="nm"><div>${esc(f.name)}</div><div class="u">${esc(f.url)}</div>${d}</div>${s}</div>`;
+  }).join('');
+}
+
+/* ========== 共通 ========== */
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function rel(ms){
+  if(!ms)return'';const d=Date.now()-ms;
+  if(d<60e3)return'たった今';if(d<3600e3)return Math.floor(d/60e3)+'分前';
+  if(d<DAY)return Math.floor(d/3600e3)+'時間前';if(d<7*DAY)return Math.floor(d/DAY)+'日前';
+  return new Date(ms).toLocaleDateString('ja-JP',{month:'short',day:'numeric'});
+}
+let tid=null;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tid);tid=setTimeout(()=>t.classList.remove('show'),2600);}
+function status(m){$('#st-msg').textContent=m;}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ========== 起動 ========== */
+document.addEventListener('DOMContentLoaded',()=>{
+  feeds=load(K.feeds,[]);arts=load(K.arts,[]);
+  cfg=Object.assign({mode:'popup',ipUser:'',ipPass:'',ai:true},load(K.cfg,{}));
+  meta=load(K.meta,{});
+
+  document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.tab;shown=PAGE;render();$('#main').scrollTop=0;}));
+  $('#flist').addEventListener('click',e=>{const fi=e.target.closest('.fi');if(!fi)return;curF=fi.dataset.f;shown=PAGE;render();$('#main').scrollTop=0;queueSummaries();});
+  $('#b-refresh').addEventListener('click',()=>refresh());
+  $('#b-done').addEventListener('click',skipAllVisible);
+  $('#b-settings').addEventListener('click',openSettings);
+  $('#st-fail').addEventListener('click',openSettings);
+  $('#list').addEventListener('click',e=>{
+    if(e.target.id==='b-more'){shown+=PAGE;renderList();queueSummaries();return;}
+    const row=e.target.closest('.row');if(!row)return;
+    const rs=rowsEls();focusIdx=rs.indexOf(row);markFocus(false);
+    const b=e.target.closest('button[data-act]');if(!b)return;
+    const a=byId(row.dataset.id);if(a)act(b.dataset.act,a,row);
+  });
+  document.addEventListener('keydown',e=>{
+    if($('#dlg').open||e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+    const rs=rowsEls();if(!rs.length)return;
+    const k=e.key.toLowerCase();
+    if(k==='j'||k==='arrowdown'){e.preventDefault();focusIdx=Math.min(rs.length-1,focusIdx+1);markFocus();}
+    else if(k==='k'||k==='arrowup'){e.preventDefault();focusIdx=Math.max(0,focusIdx-1);markFocus();}
+    else if(focusIdx>=0&&rs[focusIdx]){
+      const row=rs[focusIdx],a=byId(row.dataset.id);if(!a)return;
+      if((k==='s'||k==='enter')&&a.st==='new'){e.preventDefault();act('send',a,row);}
+      else if(k==='x'&&a.st==='new'){e.preventDefault();act('skip',a,row);}
+      else if(k==='u'&&a.st!=='new'){e.preventDefault();act('back',a,row);}
+    }
+  });
+
+  $('#dlg-close').addEventListener('click',()=>$('#dlg').close());
+  $('#dlg').addEventListener('close',()=>{render(true);updAi();});
+  document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener('change',()=>{cfg.mode=r.value;saveCfg();$('#api-box').style.display=cfg.mode==='api'?'':'none';}));
+  $('#ip-user').addEventListener('change',e=>{cfg.ipUser=e.target.value.trim();saveCfg();});
+  $('#ip-pass').addEventListener('change',e=>{cfg.ipPass=e.target.value;saveCfg();});
+  $('#ip-test').addEventListener('click',async()=>{
+    cfg.ipUser=$('#ip-user').value.trim();cfg.ipPass=$('#ip-pass').value;saveCfg();
+    const r=$('#ip-res');r.className='res';r.textContent='確認中…';
+    try{const st=ipStatus(await ipApi('authenticate',{username:cfg.ipUser,password:cfg.ipPass||''}));
+      if(st===200){r.className='res ok';r.textContent='✓ 接続できました。1クリックで送れます';}
+      else{r.className='res ng';r.textContent=st===403?'メールかパスワードが違います':'接続できませんでした（'+st+'）';}
+    }catch(e){r.className='res ng';r.textContent='接続できませんでした。会社のネットワークで遮断されている可能性があります。「確認画面方式」を使ってください';}
+  });
+  $('#ai-on').addEventListener('change',e=>{cfg.ai=e.target.checked;saveCfg();updAi();if(cfg.ai)queueSummaries();});
+  $('#ai-setup').addEventListener('click',aiSetup);
+  $('#b-edit-opml').href=OPML_EDIT_URL;
+  $('#b-export').addEventListener('click',exportOpml);
+  $('#b-cleanold').addEventListener('click',()=>{
+    if(!confirm('旧版の記事データと「あとで読む」リストを削除します（フィード登録は残します）。よろしいですか？'))return;
+    localStorage.removeItem(OLD.arts);localStorage.removeItem(OLD.later);toast('旧版の記事データを削除しました');
+  });
+
+  render();
+  if(cfg.ai)getSummarizer('ja',false).then(()=>queueSummaries());
+  const due=()=>!meta.lastRefresh||Date.now()-meta.lastRefresh>AUTO_REFRESH;
+  if(due())refresh();
+  else status('前回の更新: '+rel(meta.lastRefresh)+'・'+dataAge());
+  // 開いたままでも、GitHub側の更新（20分ごと）に合わせて読み直す
+  setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&due())refresh();},60e3);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&due())refresh();});
+});
+</script>
+</body>
+</html>
