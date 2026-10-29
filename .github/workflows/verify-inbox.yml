@@ -4,7 +4,7 @@ name: Verify inbox
 on:
   workflow_dispatch:
   push:
-    branches: [main, claude/keen-babbage-29yghl]
+    branches: [main]
     paths:
       - k25-inbox.html
       - tests/browser_check.js

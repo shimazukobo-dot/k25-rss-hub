@@ -6,7 +6,7 @@ on:
     # 20分ごと。毎時0分は GitHub 側が混雑して遅れやすいのでずらしている
     - cron: "7,27,47 * * * *"
   push:
-    branches: [main, claude/keen-babbage-29yghl]
+    branches: [main]
     paths:
       - feeds.opml
       - scripts/**
