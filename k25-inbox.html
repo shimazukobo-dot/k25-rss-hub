@@ -30,6 +30,8 @@ header{display:flex;align-items:center;gap:10px;padding:0 16px;height:54px;backg
 .btn.pri{background:var(--ac);border-color:var(--ac);color:#111;font-weight:600}
 .btn.pri:hover{filter:brightness(1.1);color:#111}
 .btn.sm{padding:4px 9px;font-size:12px}
+a.btn{text-decoration:none;display:inline-block}
+code{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;background:var(--sf2);padding:0 4px;border-radius:3px}
 .btn.ng:hover{border-color:var(--ng);color:var(--ng)}
 #prog{height:2px;flex-shrink:0}#prog-bar{height:100%;width:0;background:var(--ac);transition:width .2s}
 #layout{flex:1;display:flex;min-height:0}
@@ -108,7 +110,7 @@ input:focus{border-color:var(--ac)}
     <button data-tab="skip">見送り<b id="c-skip">0</b></button>
   </nav>
   <div class="sp"></div>
-  <button class="btn" id="b-refresh" title="全フィードを更新">↻ 更新</button>
+  <button class="btn" id="b-refresh" title="GitHubに用意された最新データを読み込む">↻ 更新</button>
   <button class="btn" id="b-done" title="表示中の新着をすべて見送りにする">✓ 残りを見送り</button>
   <button class="btn" id="b-settings">⚙ 設定</button>
 </header>
@@ -155,14 +157,13 @@ input:focus{border-color:var(--ac)}
 
   <div class="sec">
     <h3>フィード</h3>
-    <div class="fld"><input type="text" id="add-url" placeholder="RSS / Atom のURLを貼り付け"><button class="btn pri sm" id="add-btn">追加</button></div>
-    <div class="res" id="add-res"></div>
+    <p class="note">各フィードはGitHub Actionsが20分ごとに取得しています。このPCはGitHub上のデータを1つ読むだけで、各サイトや公開proxyには接続しません（GitHubへのログインも不要です）。<br>
+      フィードの追加・削除は、GitHubの <code>feeds.opml</code> を編集してください（自宅PCやスマホなど、GitHubにログインできる端末から）。保存すると数分でここに反映されます。</p>
+    <div class="res" id="src-res"></div>
     <div id="fm-list"></div>
     <div class="btns">
-      <button class="btn sm" id="b-migrate">旧版から取り込み</button>
+      <a class="btn sm" id="b-edit-opml" target="_blank" rel="noopener">GitHubでフィード一覧を編集</a>
       <button class="btn sm" id="b-export">OPMLに書き出し（バックアップ）</button>
-      <button class="btn sm" id="b-import">OPMLを読み込み</button>
-      <input type="file" id="opml-file" accept=".opml,.xml" hidden>
       <button class="btn sm ng" id="b-cleanold" title="旧版の記事データと「あとで読む」を削除して保存容量を空けます（フィード登録は残します）">旧版の記事データを削除</button>
     </div>
   </div>
@@ -176,12 +177,11 @@ const OLD={feeds:'rss_feeds_v5',arts:'rss_arts_v5',later:'rss_later_v5'};
 const COLORS=['#d19a2e','#4a9eca','#7eb87a','#ca6a4a','#9a7eca','#ca4a7e','#4acab4','#dba05a','#6aacca','#b0ca6a','#ca8a5a','#a87eca'];
 const DAY=864e5;
 const MAX_ARTS=2000;       // 保存する記事の上限
-const CONC=4;              // 同時に取得するフィード数
-const TIMEOUT=8000;        // 1経路の取得待ち上限（遮断されたproxyで長時間止まらないようにする）
+const TIMEOUT=20000;       // 1つの取得元の待ち上限（データは1MB前後）
 const FIRST_WINDOW=3*DAY;  // 初回取得時、これより古い記事は新着にしない
 const KEEP=45*DAY;         // 送信済み・見送りを保持する期間
 const PAGE=150;            // 一度に表示する件数
-const AUTO_REFRESH=20*60e3;// 開いたとき、前回更新からこれ以上経っていれば自動更新
+const AUTO_REFRESH=10*60e3;// 開いたとき・開いている間、前回更新からこれ以上経っていれば自動更新
 
 /* ========== 状態 ========== */
 let feeds=[],arts=[],cfg={},meta={};
@@ -195,118 +195,59 @@ function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}
   catch(e){toast('保存容量が不足しています。設定の「旧版の記事データを削除」を試してください');return false;}}
 const saveFeeds=()=>store(K.feeds,feeds),saveArts=()=>store(K.arts,arts),saveCfg=()=>store(K.cfg,cfg),saveMeta=()=>store(K.meta,meta);
 
-/* ========== 取得 ========== */
-const PROXIES=[
-  {n:'直接',u:x=>x},
-  {n:'allorigins',u:x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x)},
-  {n:'codetabs',u:x=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(x)},
-  {n:'corsproxy',u:x=>'https://corsproxy.io/?url='+encodeURIComponent(x)},
+/* ========== 取得（GitHub Actions が生成した静的データを1回読むだけ） ========== */
+// 各RSSサイトや公開CORS proxyには接続しない。GitHub Actions が20分ごとに
+// feeds.opml の全フィードを取得し、結果を data ブランチに置いている。
+// 上から順に試し、最初に読めた1つだけを使う（前回成功した取得元を先頭にする）。
+const REPO='shimazukobo-dot/k25-rss-hub';
+const DATA_SOURCES=[
+  {n:'GitHub raw',u:`https://raw.githubusercontent.com/${REPO}/data/public/feed-data.json`},
+  {n:'GitHub Pages',u:'https://shimazukobo-dot.github.io/k25-rss-hub/public/feed-data.json'},
+  {n:'jsDelivr',u:`https://cdn.jsdelivr.net/gh/${REPO}@data/public/feed-data.json`},
+  // fetch() 自体が使えない環境向け。<script> で読むので CORS に依存しない
+  {n:'jsDelivr(script)',js:`https://cdn.jsdelivr.net/gh/${REPO}@data/public/feed-data.js`},
 ];
-async function fetchBytes(url){
+const OPML_EDIT_URL=`https://github.com/${REPO}/edit/main/feeds.opml`;
+const STALE=2*3600e3;      // データの生成からこれ以上経っていたら警告する
+async function fetchJson(url){
   const c=new AbortController(),t=setTimeout(()=>c.abort(),TIMEOUT);
   try{
     const r=await fetch(url,{signal:c.signal,cache:'no-store'});
     if(!r.ok)throw new Error('HTTP '+r.status);
-    return{b:await r.arrayBuffer(),ct:r.headers.get('content-type')||''};
+    return await r.json();
   }finally{clearTimeout(t);}
 }
-function decode(b,ct){
-  const head=new TextDecoder('windows-1252').decode(new Uint8Array(b.slice(0,400)));
-  const declared=((head.match(/encoding\s*=\s*["']([\w.-]+)["']/i)||[])[1]||(ct.match(/charset=([\w.-]+)/i)||[])[1]||'utf-8').toLowerCase();
-  const cands=[...new Set([declared,'utf-8'])];
-  let best=null,bestBad=Infinity;
-  for(const enc of cands){
-    try{const s=new TextDecoder(enc).decode(b);const bad=(s.match(/\uFFFD/g)||[]).length;if(bad<bestBad){best=s;bestBad=bad;}if(!bad)break;}catch(e){}
-  }
-  return best??new TextDecoder().decode(b);
+function loadScript(url){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    const done=()=>{clearTimeout(t);s.remove();};
+    const t=setTimeout(()=>{done();rej(new Error('timeout'));},TIMEOUT);
+    delete window.K25_FEED_DATA;
+    s.onload=()=>{done();window.K25_FEED_DATA?res(window.K25_FEED_DATA):rej(new Error('empty'));};
+    s.onerror=()=>{done();rej(new Error('network'));};
+    s.src=url+(url.includes('?')?'&':'?')+'t='+Math.floor(Date.now()/60e3);
+    document.head.appendChild(s);
+  });
 }
-async function viaXml(p,url){
-  const{b,ct}=await fetchBytes(p.u(url));
-  const f=parseFeed(decode(b,ct));
-  if(!f)throw new Error('parse');
-  return{...f,via:p.n};
-}
-async function viaR2j(url){
-  const{b}=await fetchBytes('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(url));
-  const j=JSON.parse(new TextDecoder().decode(b));
-  if(j.status!=='ok'||!Array.isArray(j.items))throw new Error('r2j');
-  return{title:j.feed?.title||'',via:'rss2json',
-    items:j.items.map(x=>mkItem(x.guid,x.link,x.title,x.description||x.content,x.pubDate)).filter(Boolean)};
-}
-async function fetchFeed(f){
-  const all=[...PROXIES.map(p=>({n:p.n,run:()=>viaXml(p,f.url)})),{n:'rss2json',run:()=>viaR2j(f.url)}];
-  const pref=all.find(s=>s.n===f.via);
-  // 以前の版は全経路を同時に呼んでいたため、多数のフィードを更新すると
-  // 無料proxyへ一気にリクエストが飛び、rate limitされやすかった。
-  // 前回成功した経路を先頭に、1本ずつ順番に試す。
-  const order=pref?[pref,...all.filter(s=>s!==pref)]:all;
+async function loadData(){
+  const pref=DATA_SOURCES.find(s=>s.n===meta.src);
+  const order=pref?[pref,...DATA_SOURCES.filter(s=>s!==pref)]:DATA_SOURCES;
   const errors=[];
   for(const s of order){
     try{
-      const r=await s.run();
-      f.diag='';
-      return r;
+      const d=s.js?await loadScript(s.js):await fetchJson(s.u);
+      if(!d||d.v!==1||!Array.isArray(d.feeds))throw new Error('形式が違います');
+      meta.src=s.n;meta.srcErr='';
+      return d;
     }catch(e){
-      const m=e?.name==='AbortError'?'timeout':(e?.message||e?.name||'error');
-      errors.push(`${s.n}: ${m}`);
+      errors.push(`${s.n}: ${e?.name==='AbortError'?'timeout':(e?.message||e?.name||'error')}`);
     }
   }
-  // 診断結果を設定画面に出す。認証情報や記事本文は含まれない。
-  f.diag=errors.join(' / ').slice(0,500);
+  meta.srcErr=errors.join(' / ').slice(0,500);
   return null;
 }
 
-/* ========== 解析 ========== */
-function tryXml(s){
-  const d=new DOMParser().parseFromString(s,'application/xml');
-  return d.getElementsByTagName('parsererror').length?null:d;
-}
-function parseFeed(s){
-  s=s.replace(/^\uFEFF/,'').trim();
-  if(!s.startsWith('<'))return null;
-  let d=tryXml(s);
-  if(!d)d=tryXml(s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').replace(/&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#\d+|#x[0-9a-fA-F]+);)/g,'&amp;'));
-  if(!d)return null;
-  const root=d.documentElement,rn=root.localName.toLowerCase();
-  let title='',nodes=[];
-  if(rn==='feed'){title=kidText(root,['title']);nodes=[...root.getElementsByTagNameNS('*','entry')];}
-  else if(rn==='rss'||rn==='rdf'){const ch=root.getElementsByTagNameNS('*','channel')[0];title=ch?kidText(ch,['title']):'';nodes=[...root.getElementsByTagNameNS('*','item')];}
-  else return null;
-  return{title:plain(title),items:nodes.map(parseItem).filter(Boolean)};
-}
-function kidText(el,names){
-  const kids=[...el.children];
-  for(const n of names){const k=kids.find(x=>x.localName===n);if(k&&k.textContent.trim())return k.textContent.trim();}
-  return'';
-}
-function parseItem(el){
-  const kids=[...el.children];
-  let link='';
-  for(const k of kids.filter(x=>x.localName==='link')){
-    const h=k.getAttribute('href'),rel=k.getAttribute('rel');
-    if(h&&(!rel||rel==='alternate')){link=h;break;}
-    if(!h&&k.textContent.trim()){link=k.textContent.trim();break;}
-  }
-  if(!link){const about=el.getAttribute('rdf:about')||'',g=kidText(el,['guid']);link=/^https?:/.test(about)?about:(/^https?:/.test(g)?g:'');}
-  return mkItem(kidText(el,['guid','id']),link,kidText(el,['title']),
-    kidText(el,['description','summary','encoded','content']),
-    kidText(el,['pubDate','published','updated','date','issued','modified']));
-}
-function mkItem(guid,link,title,raw,ds){
-  link=(link||'').trim();const t=plain(title||'')||'(無題)';
-  const key=(guid||link||t).trim().slice(0,300);
-  if(!key)return null;
-  let x=plain(raw||'').slice(0,420);
-  if(x===t)x='';
-  return{key,t,l:link,d:pd(ds),x};
-}
-function plain(html){
-  if(!html)return'';
-  if(!/[<&]/.test(html))return html.replace(/\s+/g,' ').trim();
-  const doc=new DOMParser().parseFromString(html,'text/html');
-  return(doc.body?.textContent||'').replace(/\s+/g,' ').trim();
-}
-function pd(s){if(!s)return 0;const d=new Date(s.trim());return isNaN(d)?0:d.getTime();}
+/* ========== 表示用テキスト ========== */
 function leadOf(x){
   if(!x)return'';
   if(x.length<=140)return x;
@@ -319,13 +260,14 @@ function leadOf(x){
 /* ========== 記事の統合 ========== */
 function merge(f,items,first){
   const have=new Set(arts.map(a=>a.id)),now=Date.now();let n=0;
+  const links=new Set(arts.filter(a=>a.fid===f.id&&a.l).map(a=>a.l));
   for(const it of items){
     const id=f.id+'|'+it.key;
-    if(have.has(id))continue;
+    if(have.has(id)||(it.l&&links.has(it.l)))continue;
     if(it.d&&it.d<now-KEEP)continue;
     const st=first&&it.d&&it.d<now-FIRST_WINDOW?'skip':'new';
     arts.push({id,fid:f.id,t:it.t,l:it.l,d:it.d||now,x:st==='new'?it.x:'',st,ts:now});
-    have.add(id);if(st==='new')n++;
+    have.add(id);if(it.l)links.add(it.l);if(st==='new')n++;
   }
   return n;
 }
@@ -340,66 +282,58 @@ function prune(){
 }
 
 /* ========== 更新 ========== */
-function apply(f,r,first){
-  f.via=r.via;f.lastOk=Date.now();f.err='';f.fails=0;
-  if(r.title&&(!f.name||f.name===f.url))f.name=r.title;
-  return merge(f,r.items,first);
-}
-async function refresh(targets){
-  targets=targets||feeds;
-  if(busy||!targets.length)return;
-  busy=true;$('#b-refresh').disabled=true;
-  let done=0,ok=0,added=0;const total=targets.length,failed=[],q=[...targets];
-  const tick=()=>{$('#prog-bar').style.width=Math.round(done/total*100)+'%';status(`更新中… ${done}/${total}`);};
-  tick();
-  const worker=async()=>{
-    while(q.length){
-      const f=q.shift(),first=!f.lastOk,r=await fetchFeed(f);
-      if(r){added+=apply(f,r,first);ok++;}else failed.push(f);
-      done++;tick();
-      if(done%12===0)render(true);
-    }
-  };
-  await Promise.all(Array.from({length:Math.min(CONC,total)},worker));
-  if(failed.length){
-    status(`取得できなかった ${failed.length}件を再試行中…`);
-    await sleep(1500);
-    for(const f of failed.splice(0)){
-      const first=!f.lastOk,r=await fetchFeed(f);
-      if(r){added+=apply(f,r,first);ok++;}
-      else{f.fails=(f.fails||0)+1;f.err='取得失敗';f.lastTry=Date.now();failed.push(f);}
-    }
+// フィード一覧は GitHub の feeds.opml が正。データに含まれるフィードに合わせて、
+// URLが同じものは既存の id・色・記事状態を引き継ぐ。
+function syncFeeds(list){
+  const byUrl=new Map(feeds.map(f=>[f.url,f]));const next=[];
+  for(const s of list){
+    let f=byUrl.get(s.u);
+    if(!f)f={id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),url:s.u,color:COLORS[(feeds.length+next.length)%COLORS.length]};
+    f.name=(s.n&&s.n!==s.u?s.n:s.ft)||s.u;
+    f.home=s.h||'';
+    next.push(f);
   }
+  feeds=next;
+}
+function apply(f,s){
+  const first=!f.lastOk&&!f.merged;
+  const n=merge(f,(s.i||[]).map(x=>({key:x.k,t:x.t||'(無題)',l:x.l||'',d:x.d||0,x:x.x||''})),first);
+  f.merged=1;
+  if(s.lo)f.lastOk=s.lo;
+  f.err=s.ok?'':'取得失敗';f.diag=s.ok?'':(s.e||'');
+  return n;
+}
+async function refresh(){
+  if(busy)return;
+  busy=true;$('#b-refresh').disabled=true;$('#prog-bar').style.width='30%';
+  status('GitHubからデータを読み込み中…');
+  const d=await loadData();
+  if(!d){
+    busy=false;$('#b-refresh').disabled=false;$('#prog-bar').style.width='0';
+    meta.lastTry=Date.now();saveMeta();render(true);
+    status('GitHubのデータを読み込めませんでした（⚙ 設定に詳細）');
+    toast('GitHubのデータを読み込めませんでした');
+    return;
+  }
+  $('#prog-bar').style.width='80%';
+  syncFeeds(d.feeds);
+  const fm=new Map(feeds.map(f=>[f.url,f]));let added=0,ok=0;
+  for(const s of d.feeds){const f=fm.get(s.u);if(!f)continue;added+=apply(f,s);if(s.ok)ok++;}
   prune();saveFeeds();saveArts();
-  meta.lastRefresh=Date.now();saveMeta();
+  meta.lastRefresh=Date.now();meta.generated=d.generated;saveMeta();
   busy=false;$('#b-refresh').disabled=false;$('#prog-bar').style.width='0';
   render(true);
-  status(`更新完了 ${new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}・新着 ${added}件・成功 ${ok}/${total}`);
+  status(`更新完了 ${new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}・新着 ${added}件・取得成功 ${ok}/${d.feeds.length}・${dataAge()}`);
+  if(Date.now()-d.generated>STALE)toast('GitHub側のデータが'+rel(d.generated)+'から更新されていません');
   queueSummaries();
+}
+function dataAge(){
+  if(!meta.generated)return'';
+  const s=`データ生成 ${rel(meta.generated)}（${meta.src||''}）`;
+  return Date.now()-meta.generated>STALE?'⚠ '+s:s;
 }
 
 /* ========== フィード管理 ========== */
-function addFeed(url,name){
-  url=(url||'').trim();
-  if(!/^https?:\/\//i.test(url)||feeds.some(f=>f.url===url))return null;
-  const f={id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),url,name:(name||'').trim()||url,color:COLORS[feeds.length%COLORS.length]};
-  feeds.push(f);return f;
-}
-function delFeed(id){
-  const f=feeds.find(x=>x.id===id);if(!f)return;
-  if(!confirm(`「${f.name}」を削除しますか？`))return;
-  feeds=feeds.filter(x=>x.id!==id);arts=arts.filter(a=>a.fid!==id);
-  if(curF===id)curF='all';
-  saveFeeds();saveArts();render();renderFeedMgr();
-}
-function migrateOld(silent){
-  const old=load(OLD.feeds,null);
-  if(!Array.isArray(old)||!old.length){if(!silent)toast('旧版のフィードが見つかりません（旧版と同じChromeで開いてください）');return 0;}
-  let n=0;for(const o of old){if(o&&addFeed(o.url,o.name))n++;}
-  saveFeeds();render();renderFeedMgr();
-  toast(n?`旧版から ${n}件のフィードを取り込みました`:'新しく取り込むフィードはありませんでした');
-  return n;
-}
 function exportOpml(){
   const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
   const body=feeds.map(f=>`    <outline type="rss" text="${xe(f.name)}" title="${xe(f.name)}" xmlUrl="${xe(f.url)}"/>`).join('\n');
@@ -408,21 +342,6 @@ function exportOpml(){
   a.href=URL.createObjectURL(new Blob([s],{type:'text/xml'}));
   a.download='k25-feeds-'+new Date().toISOString().slice(0,10)+'.opml';
   a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-}
-function importOpml(file){
-  const r=new FileReader();
-  r.onload=()=>{
-    const d=new DOMParser().parseFromString(r.result,'application/xml');
-    let n=0;
-    for(const o of d.querySelectorAll('outline')){
-      const u=o.getAttribute('xmlUrl')||o.getAttribute('xmlurl');
-      if(u&&addFeed(u,o.getAttribute('title')||o.getAttribute('text')))n++;
-    }
-    saveFeeds();render();renderFeedMgr();
-    toast(`${n}件のフィードを追加しました`);
-    if(n)refresh(feeds.filter(f=>!f.lastOk));
-  };
-  r.readAsText(file);
 }
 
 /* ========== Instapaper ========== */
@@ -535,10 +454,10 @@ function renderSide(){
 function renderList(){
   const v=visible(),fm=Object.fromEntries(feeds.map(f=>[f.id,f])),el=$('#list');
   if(!feeds.length){
-    el.innerHTML=`<div class="empty"><div class="big">◎</div>フィードが登録されていません。<br>「⚙ 設定」から追加するか、「旧版から取り込み」を押してください。</div>`;return;
+    el.innerHTML=`<div class="empty"><div class="big">◎</div>${busy?'GitHubからデータを読み込み中です…':'まだデータを読み込めていません。<br>「↻ 更新」を押してください。読み込めない場合は「⚙ 設定」に原因が表示されます。'}</div>`;return;
   }
   if(!v.length){
-    const msg={new:busy?'更新中です…':'新着はありません。<br>「↻ 更新」で最新の記事を取得します。',sent:'K25へ送った記事はまだありません。',skip:'見送った記事はありません。'}[tab];
+    const msg={new:busy?'更新中です…':'新着はありません。<br>「↻ 更新」で最新のデータを読み込みます。',sent:'K25へ送った記事はまだありません。',skip:'見送った記事はありません。'}[tab];
     el.innerHTML=`<div class="empty"><div class="big">✓</div>${msg}</div>`;return;
   }
   const rows=v.slice(0,shown).map(a=>rowHtml(a,fm[a.fid])).join('');
@@ -605,7 +524,7 @@ function openSettings(){
   document.querySelectorAll('input[name=mode]').forEach(r=>r.checked=r.value===cfg.mode);
   $('#ip-user').value=cfg.ipUser||'';$('#ip-pass').value=cfg.ipPass||'';
   $('#api-box').style.display=cfg.mode==='api'?'':'none';
-  $('#ai-on').checked=!!cfg.ai;$('#ip-res').textContent='';$('#add-res').textContent='';
+  $('#ai-on').checked=!!cfg.ai;$('#ip-res').textContent='';
   aiAvail().then(av=>{
     const r=$('#ai-res');
     if(av==='available'){r.className='res ok';r.textContent='✓ このPCで内蔵AIを使えます';}
@@ -615,24 +534,18 @@ function openSettings(){
   renderFeedMgr();$('#dlg').showModal();
 }
 function renderFeedMgr(){
+  const r=$('#src-res');
+  if(meta.srcErr&&(!meta.lastRefresh||(meta.lastTry||0)>meta.lastRefresh)){r.className='res ng';r.textContent='GitHubのデータを読み込めませんでした：'+meta.srcErr;}
+  else if(meta.generated){r.className='res ok';r.textContent=`✓ ${dataAge()}・前回の読み込み ${rel(meta.lastRefresh)}`;}
+  else{r.className='res';r.textContent='';}
   const el=$('#fm-list');
-  if(!feeds.length){el.innerHTML='<div class="fm"><span class="nm u">フィードはまだありません</span></div>';return;}
-  el.innerHTML=feeds.map(f=>{
-    const s=f.err?`<span class="s ng" title="${esc(f.diag||'詳細なし')}">取得できません</span>`:f.lastOk?`<span class="s ok">OK ${rel(f.lastOk)}</span>`:`<span class="s na">未取得</span>`;
-    const d=f.err&&f.diag?`<div class="u" style="color:var(--ng);margin-top:3px">${esc(f.diag)}</div>`:'';
-    return`<div class="fm"><div class="nm"><div>${esc(f.name)}</div><div class="u">${esc(f.url)}</div>${d}</div>${s}<button class="btn sm ng" data-del="${esc(f.id)}">削除</button></div>`;
+  if(!feeds.length){el.innerHTML='<div class="fm"><span class="nm u">まだデータを読み込んでいません</span></div>';return;}
+  const bad=feeds.filter(f=>f.err),good=feeds.filter(f=>!f.err);
+  el.innerHTML=[...bad,...good].map(f=>{
+    const s=f.err?`<span class="s ng" title="${esc(f.diag||'詳細なし')}">取得できません${f.lastOk?'<br>最終成功 '+rel(f.lastOk):''}</span>`:f.lastOk?`<span class="s ok">OK ${rel(f.lastOk)}</span>`:`<span class="s na">未取得</span>`;
+    const d=f.err&&f.diag?`<div class="u" style="color:var(--ng);margin-top:3px">GitHub側での取得結果: ${esc(f.diag)}</div>`:'';
+    return`<div class="fm"><div class="nm"><div>${esc(f.name)}</div><div class="u">${esc(f.url)}</div>${d}</div>${s}</div>`;
   }).join('');
-}
-async function addFromSettings(){
-  const url=$('#add-url').value.trim(),res=$('#add-res');
-  if(!url)return;
-  const f=addFeed(url);
-  if(!f){res.className='res ng';res.textContent=feeds.some(x=>x.url===url)?'すでに登録されています':'http(s):// で始まるURLを入力してください';return;}
-  res.className='res';res.textContent='取得を確認中…';$('#add-btn').disabled=true;
-  const r=await fetchFeed(f);$('#add-btn').disabled=false;
-  if(r){const n=apply(f,r,true);res.className='res ok';res.textContent=`✓ 「${f.name}」を追加しました（新着 ${n}件）`;$('#add-url').value='';}
-  else{f.err='取得失敗';res.className='res ng';res.textContent='取得できませんでした：'+(f.diag||'URLがRSS/Atomのものか確認してください');}
-  saveFeeds();saveArts();render(true);renderFeedMgr();
 }
 
 /* ========== 共通 ========== */
@@ -653,7 +566,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   feeds=load(K.feeds,[]);arts=load(K.arts,[]);
   cfg=Object.assign({mode:'popup',ipUser:'',ipPass:'',ai:true},load(K.cfg,{}));
   meta=load(K.meta,{});
-  if(!feeds.length&&Array.isArray(load(OLD.feeds,null)))migrateOld(true);
 
   document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.tab;shown=PAGE;render();$('#main').scrollTop=0;}));
   $('#flist').addEventListener('click',e=>{const fi=e.target.closest('.fi');if(!fi)return;curF=fi.dataset.f;shown=PAGE;render();$('#main').scrollTop=0;queueSummaries();});
@@ -697,13 +609,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   $('#ai-on').addEventListener('change',e=>{cfg.ai=e.target.checked;saveCfg();updAi();if(cfg.ai)queueSummaries();});
   $('#ai-setup').addEventListener('click',aiSetup);
-  $('#add-btn').addEventListener('click',addFromSettings);
-  $('#add-url').addEventListener('keydown',e=>{if(e.key==='Enter')addFromSettings();});
-  $('#fm-list').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(b)delFeed(b.dataset.del);});
-  $('#b-migrate').addEventListener('click',()=>migrateOld(false));
+  $('#b-edit-opml').href=OPML_EDIT_URL;
   $('#b-export').addEventListener('click',exportOpml);
-  $('#b-import').addEventListener('click',()=>$('#opml-file').click());
-  $('#opml-file').addEventListener('change',e=>{const f=e.target.files[0];if(f)importOpml(f);e.target.value='';});
   $('#b-cleanold').addEventListener('click',()=>{
     if(!confirm('旧版の記事データと「あとで読む」リストを削除します（フィード登録は残します）。よろしいですか？'))return;
     localStorage.removeItem(OLD.arts);localStorage.removeItem(OLD.later);toast('旧版の記事データを削除しました');
@@ -711,8 +618,12 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   render();
   if(cfg.ai)getSummarizer('ja',false).then(()=>queueSummaries());
-  if(feeds.length&&(!meta.lastRefresh||Date.now()-meta.lastRefresh>AUTO_REFRESH))refresh();
-  else if(meta.lastRefresh)status('前回の更新: '+rel(meta.lastRefresh));
+  const due=()=>!meta.lastRefresh||Date.now()-meta.lastRefresh>AUTO_REFRESH;
+  if(due())refresh();
+  else status('前回の更新: '+rel(meta.lastRefresh)+'・'+dataAge());
+  // 開いたままでも、GitHub側の更新（20分ごと）に合わせて読み直す
+  setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&due())refresh();},60e3);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&due())refresh();});
 });
 </script>
 </body>

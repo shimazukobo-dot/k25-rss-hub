@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import feedparser
 import requests
@@ -31,6 +31,8 @@ SCHEMA = 1
 WORKERS = 16
 TIMEOUT = (10, 25)            # (接続, 読み込み) 秒
 MAX_BYTES = 15 * 1024 * 1024
+SITE_GAP = 1.0                # 同じサイトへの連続アクセスの間隔（秒）
+RETRY_GAP = 5.0               # 失敗したフィードを再試行するまでの待ち（秒）
 MAX_ITEMS = 30                # 1フィードあたりの記事数上限
 KEEP_DAYS = 45                # k25-inbox.html の KEEP と同じ。これより古い記事は出力しない
 TEXT_LEN = 420                # k25-inbox.html の mkItem と同じ切り詰め長
@@ -178,7 +180,7 @@ def http_get(sess: requests.Session, url: str, headers: dict) -> requests.Respon
             for chunk in r.iter_content(65536):
                 body += chunk
                 if len(body) > MAX_BYTES:
-                    raise ValueError("too large")
+                    raise ValueError(f"大きすぎます（{MAX_BYTES // 1048576}MB超）")
             r._content = body
             if r.status_code in (403, 406, 429) and ua != BROWSER_UA:
                 last = r
@@ -258,6 +260,48 @@ def fetch_one(feed: dict, state: dict, now_ms: int) -> tuple[dict, dict]:
         return {"ok": False, "err": msg[:200]}, st
 
 
+def site_of(url: str) -> str:
+    """同じ運営サイト（fc2.com, livedoor.jp, blogspot.com など）をまとめるためのキー。"""
+    host = (urlsplit(url).hostname or "").lower()
+    parts = host.split(".")
+    n = 3 if len(parts) >= 3 and parts[-2] in ("co", "ne", "or", "ac", "go", "gr", "ed", "com", "net", "org") else 2
+    return ".".join(parts[-n:])
+
+
+def fetch_all(feeds: list[dict], state: dict, now_ms: int) -> list[tuple[dict, dict]]:
+    # 同じサイトに並列で大量アクセスすると 403 で弾かれる（FC2 などで確認）。
+    # サイトごとに1本ずつ順番に取得し、サイト同士は並列にする。
+    groups: dict[str, list[int]] = {}
+    for i, f in enumerate(feeds):
+        groups.setdefault(site_of(f["u"]), []).append(i)
+    results: list = [None] * len(feeds)
+
+    def run(idx: list[int], gap: float):
+        for n, i in enumerate(idx):
+            if n:
+                time.sleep(gap)
+            results[i] = fetch_one(feeds[i], state.get(feeds[i]["u"], {}), now_ms)
+
+    def pool(gs, gap):
+        with ThreadPoolExecutor(WORKERS) as ex:
+            list(ex.map(lambda g: run(g, gap), gs))
+
+    # 大きいグループから始めると全体が早く終わる
+    pool(sorted(groups.values(), key=len, reverse=True), SITE_GAP)
+
+    # 一時的な失敗（403/429/5xx/timeout/接続エラー）は、少し待って1回だけやり直す
+    retry = [i for i, (r, _) in enumerate(results)
+             if not r["ok"] and not re.match(r"HTTP (404|410)|RSS/Atom|大きすぎ", r.get("err", ""))]
+    if retry:
+        time.sleep(RETRY_GAP)
+        g2: dict[str, list[int]] = {}
+        for i in retry:
+            g2.setdefault(site_of(feeds[i]["u"]), []).append(i)
+        pool(list(g2.values()), SITE_GAP * 2)
+        print(f"retried {len(retry)} feeds")
+    return results
+
+
 def trim(items: list[dict], now_ms: int) -> list[dict]:
     cutoff = now_ms - KEEP_DAYS * 86400_000
     seen, out = set(), []
@@ -303,8 +347,7 @@ def main() -> int:
 
     now_ms = int(time.time() * 1000)
     t0 = time.time()
-    with ThreadPoolExecutor(WORKERS) as ex:
-        results = list(ex.map(lambda f: fetch_one(f, state.get(f["u"], {}), now_ms), feeds))
+    results = fetch_all(feeds, state, now_ms)
 
     out_feeds, new_state, n_ok, n_items = [], {}, 0, 0
     for f, (res, st) in zip(feeds, results):
