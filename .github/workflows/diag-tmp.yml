@@ -7,13 +7,16 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -q -r requirements.txt
       - run: |
-          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
-          for u in http://etfhiroba.seesaa.net/index.rdf http://pension.blog88.fc2.com/?xml http://kaishahou.cocolog-nifty.com/blog/atom.xml http://angra.hatenablog.com/feed https://blog.takaumada.com/feed https://pe-insights.com/feed/ http://feeds.feedburner.com/e-discovery-blog http://www.valuexvalue.com/atom.xml http://sengoku-akb.jugem.jp/?mode=rss http://nylawblog.typepad.com/legalantics/atom.xml; do
-            echo "=== $u"
-            curl -sS -m 25 -L -o /tmp/b -w "plainUA %{http_code} %{content_type} %{url_effective} %{size_download}\n" -A 'K25RSSHub/1.0' "$u" || true
-            curl -sS -m 25 -L -o /tmp/b2 -w "chrome  %{http_code} %{content_type} %{url_effective} %{size_download}\n" -A "$UA" -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' -H 'Accept-Language: ja,en;q=0.8' "$u" || true
-            head -c 300 /tmp/b2 | tr '\n' ' '; echo
-            grep -io 'cloudflare\|captcha\|access denied\|forbidden' /tmp/b2 | sort | uniq -c | head -3
-          done
-      - run: curl -sS -m 60 -o /dev/null -w "%{http_code} %{size_download}\n" https://blog.seedly.sg/feed/
+          cd scripts && python - <<'PY'
+          import requests, fetch_feeds as F
+          urls=["http://pension.blog88.fc2.com/?xml","http://arms22.blog91.fc2.com/?xml","http://etrip.blog.fc2.com/?xml"]
+          for u in urls:
+              for name,h in [("ours",{"User-Agent":F.UA,"Accept":F.ACCEPT}),("noaccept",{"User-Agent":F.UA}),("browser",{"User-Agent":F.BROWSER_UA}),("curl",{"User-Agent":"curl/8.5.0","Accept":"*/*"})]:
+                  r=requests.get(u,headers=h,timeout=20)
+                  print(name.ljust(9),r.status_code,[x.status_code for x in r.history],r.url)
+          PY
