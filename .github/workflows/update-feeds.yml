@@ -1,0 +1,69 @@
+name: Update feeds
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 20分ごと。毎時0分は GitHub 側が混雑して遅れやすいのでずらしている
+    - cron: "7,27,47 * * * *"
+  push:
+    branches: [main, claude/keen-babbage-29yghl]
+    paths:
+      - feeds.opml
+      - scripts/**
+      - requirements.txt
+      - .github/workflows/update-feeds.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-feeds
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Test
+        run: python -m unittest discover -s tests
+
+      - name: Load previous data
+        run: |
+          mkdir -p prev
+          if git fetch --depth=1 origin data; then
+            git archive FETCH_HEAD | tar -x -C prev
+          fi
+
+      - name: Fetch feeds
+        run: python scripts/fetch_feeds.py --opml feeds.opml --prev prev --out out
+
+      - name: Publish to data branch
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          # data ブランチは毎回1コミットだけに置き換える（20分ごとの更新で履歴が膨らまないように）
+          cd out
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Feed data $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+          cat public/status.json | python -c "import json,sys;d=json.load(sys.stdin);print(f\"::notice::feeds={d['feeds']} ok={d['ok']} failed={d['failed']} items={d['items']}\")"
+
+      - name: Purge jsDelivr cache (fallback mirror)
+        continue-on-error: true
+        run: |
+          for f in feed-data.json feed-data.js status.json; do
+            curl -fsS -m 30 -o /dev/null "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@data/public/$f" || true
+          done
