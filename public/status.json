@@ -1,0 +1,467 @@
+{
+ "v": 1,
+ "generated": 1793472622094,
+ "generated_iso": "2026-10-31T18:50:22Z",
+ "feeds": 205,
+ "ok": 114,
+ "failed": 91,
+ "items": 268,
+ "seconds": 199.3,
+ "failures": [
+  {
+   "u": "https://blog.takaumada.com/feed",
+   "n": "🐴 (馬)",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "https://pe-insights.com/feed/",
+   "n": "Private Equity Insights",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "https://blog.seedly.sg/feed/",
+   "n": "Seedly - Get Rich Or Die Tryin'",
+   "e": "ValueError: 大きすぎます（15MB超）"
+  },
+  {
+   "u": "http://etfhiroba.seesaa.net/index.rdf",
+   "n": "ETFひろば",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://blog.livedoor.jp/okane_koneta/index.rdf",
+   "n": "おかねのこねた　：　豊かで、健康で、活動的な、人生のために　（春山昇華）",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://dubbypulse.seesaa.net/index.rdf",
+   "n": "シンガポールでライフハック",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://akioblog.com/feed/",
+   "n": "WEBサービス構築ブログ",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://www.valuexvalue.com/atom.xml",
+   "n": "VALUE*VALUE",
+   "e": "RSS/Atomではありません（text/html）"
+  },
+  {
+   "u": "http://www.enotechconsulting.com/feed/",
+   "n": "Enotech Consulting - Management Consulting Firm Specialized in Business Development in Mobile, Broadband, IT Area",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.smithandcrown.com/feed/",
+   "n": "Smith + Crown",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.simplexsimple.com/atom.xml",
+   "n": "SIMPLE*SIMPLE",
+   "e": "timeout"
+  },
+  {
+   "u": "http://www.kaedena.com/feed",
+   "n": "カエデナの初心者向け資産運用方法",
+   "e": "HTTP 503"
+  },
+  {
+   "u": "http://pepdigest.com/feed/",
+   "n": "Private Equity Professional",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://almresearchonline.typepad.com/almresearchblog/atom.xml",
+   "n": "ALMResearchBlog",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://kaishahou.cocolog-nifty.com/blog/atom.xml",
+   "n": "会社法であそぼ。",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://blog.law-scribe.com/feeds/posts/default",
+   "n": "Legal Process Outsourcing",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://www.pli.edu/patentcenter/rss.asp",
+   "n": "PLI Patent Practice Center RSS feed",
+   "e": "RSS/Atomではありません（text/html）"
+  },
+  {
+   "u": "http://nylawblog.typepad.com/legalantics/atom.xml",
+   "n": "Legal Antics",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://www.legalpracticepro.com/feed/",
+   "n": "Legal Practice Pro",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://legalbrat.blogspot.com/feeds/posts/default",
+   "n": "thelegalbratblawg",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://relianceoncounsel.com/feed/",
+   "n": "Reliance On Counsel",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://www.extortionletterinfo.com/forum/feed.php?2,type=rss",
+   "n": "ExtortionLetterInfo.com Forums - Getty Images Letter Forum",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://www.lawdepartmentmanagementblog.com/law_department_management/atom.xml",
+   "n": "Law Department Management",
+   "e": "RSS/Atomではありません（text/html）"
+  },
+  {
+   "u": "http://www.ontechnologycontracts.com/feed/",
+   "n": "On Technology Contracts",
+   "e": "timeout"
+  },
+  {
+   "u": "http://feeds.feedburner.com/e-discovery-blog",
+   "n": "e-discovery 2.0» Electronic Discovery, EDiscovery, E-Discovery, Legal Discovery",
+   "e": "RSS/Atomではありません（text/xml）"
+  },
+  {
+   "u": "http://www.ji2.co.jp/ediscoveryblog/?feed=rss2",
+   "n": "eDiscovery Blog",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://legallyours.blogspot.com/feeds/posts/default",
+   "n": "Legal Process Outsourcing",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.clientrevolution.com/atom.xml",
+   "n": "The Client Revolution",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://www.vtzlawblog.com/index.xml",
+   "n": "California Labor and Employment Defense Blog",
+   "e": "RSS/Atomではありません（text/html）"
+  },
+  {
+   "u": "http://www.callaborlaw.com/atom.xml",
+   "n": "California Labor & Employment Law Blog",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://kapatlaw.com/wordpress/?feed=rss2",
+   "n": "Law Office of Katsuhiro Arai",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://blog.goo.ne.jp/habupat/index.rdf",
+   "n": "経営の視点から考える「知財発想法」",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://spring-js.com/feed/",
+   "n": "海外教育情報サイトSPRING（シンガポール）",
+   "e": "RSS/Atomではありません（text/html）"
+  },
+  {
+   "u": "http://tokuhain.arukikata.co.jp/singapore/atom.xml",
+   "n": "シンガポール特派員",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.100shiki.com/atom.xml",
+   "n": "100SHIKI",
+   "e": "timeout"
+  },
+  {
+   "u": "http://tecuration.com/feed",
+   "n": "Tecuration .com",
+   "e": "接続できません"
+  },
+  {
+   "u": "https://rakuten-unlimit.hatenablog.com/feed",
+   "n": "楽天モバイルアンリミット徹底解説",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://sinner-blog.sblo.jp/index.rdf",
+   "n": "Bespoke Tailor Sinner（ビスポークテーラー シナー）www.sinner.jp",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.neyagawa-np.jp/index.rdf",
+   "n": "寝屋川つーしん",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://burrn.online/media.rss",
+   "n": "BURRN! ONLINE",
+   "e": "HTTP 400"
+  },
+  {
+   "u": "http://angra.hatenablog.com/feed",
+   "n": "ベンチャー・アンダーグラウンド",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://www.ikedahayato.com/index.rdf",
+   "n": "まだ仮想通貨持ってないの？",
+   "e": "HTTP 410"
+  },
+  {
+   "u": "http://www.aje.to/blog/?feed=rss2",
+   "n": "ajeブログ",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://blogs.ibo.org/feed/",
+   "n": "IB Community Blog",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://blog.goo.ne.jp/salesbridge/rss2.xml",
+   "n": "『勤務地シンガポール』",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://www.horiba.com/publications/readout/rss.xml",
+   "n": "HORIBA",
+   "e": "RSS/Atomではありません（text/html）"
+  },
+  {
+   "u": "http://kakiolove.hatenablog.com/rss",
+   "n": "小田急柿生にて〜都会田舎極まれり",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.exportcontrolblog.com/blog/atom.xml",
+   "n": "Export Control Blog",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://www.4-blockworld.com/atom.xml",
+   "n": "4-Block World",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://blog.goo.ne.jp/ikedanobuo/index.rdf",
+   "n": "池田信夫 blog",
+   "e": "接続できません"
+  },
+  {
+   "u": "https://tsubakiglobal.com/feed/",
+   "n": "TSUBAKI BLOG",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://www.sinner.jp/blog/feed",
+   "n": "Sinner - Blog",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://www.brooksinstrument.com/index.php?format=feed&type=rss",
+   "n": "Brooks Instrument | Coriolis Mass Flow, Thermal Mass Flow, Flow Control and Flow Meter Solutions",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.bottompicker.com/rss/rss.xml",
+   "n": "BottomPicker",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://yokichi.com/atom.xml",
+   "n": "愛の日記 @ ボストン",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.machinist.work/feed/",
+   "n": "シンガポール備忘録",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.thecoolhunter.net/index.php?option=com_rd_rss&id=1",
+   "n": "The Cool Hunter - Latest Articles",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://portfolios.uwcsea.edu.sg/theearsofeast/feed/",
+   "n": "The Ears of East",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://eng.alc.co.jp/newsbiz/hinata/atom.xml",
+   "n": "日向清人のビジネス英語雑記帳：スペースアルク",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://oniwasblog.seesaa.net/index.rdf",
+   "n": "アーリーセミリタイア生活日記",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://blog.goo.ne.jp/mit_sloan/rss2.xml",
+   "n": "My Life After MIT Sloan",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://americanainfo.seesaa.net/index.rdf",
+   "n": "アメリカ生活お役立ち情報（Save your money!)",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://www.horiba.com/news-events/news/rss.xml",
+   "n": "HORIBA",
+   "e": "timeout"
+  },
+  {
+   "u": "http://www.horiba.com/news-events/news/rss.xml?L=1",
+   "n": "HORIBA",
+   "e": "HTTP 504"
+  },
+  {
+   "u": "http://shimanoneko.ti-da.net/index.rdf",
+   "n": "瀬戸の島じま　島の猫blog",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://sengoku-akb.jugem.jp/?mode=rss",
+   "n": "千石電商 秋葉原店",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://otsu.seesaa.net/index.rdf",
+   "n": "乙川乙彦の投資日記",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://www.tez.com/blog/atom.xml",
+   "n": "isologue - by 磯崎哲也事務所",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://guccipost.co.jp/blog/?feed=rss2",
+   "n": "Gucci Post- ブログ記者によるオンライン新聞　グッチーポスト -",
+   "e": "HTTP 503"
+  },
+  {
+   "u": "http://blog.livedoor.jp/ibdtrader/index.rdf",
+   "n": "アメリカ株トレード日記 - ブルでもベアでも儲けるぞ。",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "https://waseibuffett.com/feed/",
+   "n": "和製バフェットのシークレットポートフォリオＺ",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://guccipost.jp/cgi-bin/WebObjects/12336a3d498.woa/wa/read/123bbef2474",
+   "n": "Gucci Post",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://max999.cocolog-nifty.com/blog/atom.xml",
+   "n": "VMaxの投資のブログ",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "https://getcha.jp/feed/",
+   "n": "ゲッチャ！",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://rss.doblog.com/rss/myrss.do?method=mypagerss&userid=31550&TYPE=RSS_1_0",
+   "n": "いちカイにヤリ　投資世代（ロシア株、インド株、中国株、ブラジル株、ADR、...",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://blogs.yahoo.co.jp/mikeexpo2000/rss.xml",
+   "n": "mikeexpoのブラックスワンな日々",
+   "e": "接続できません"
+  },
+  {
+   "u": "https://www.singsaver.com.sg/blog/feed",
+   "n": "SingSaver Blog – We Compare, You Save",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "https://www.valuepenguin.sg/rss.xml",
+   "n": "ValueChampion Singapore",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://blog.goo.ne.jp/kitanotakeshi55/index.rdf",
+   "n": "債券・株・為替　中年金融マン　ぐっちーさんの金持ちまっしぐら",
+   "e": "接続できません"
+  },
+  {
+   "u": "http://kaigaisokin.seesaa.net/index.rdf",
+   "n": "手数料を節約して便利に海外送金する方法",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://www.economist.com/blogs/graphicdetail/atom.xml",
+   "n": "Graphic detail",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "http://markethack.net/index.rdf",
+   "n": "Market Hack（外国株ひろば　Version 2.0）",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://mikeexpo.blogspot.com/feeds/posts/default",
+   "n": "ブラックスワンな日々",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.fiplanning.com/blogs/nobu/feed",
+   "n": "Nobu's Blog",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://hotwired.goo.ne.jp/news/index.rdf",
+   "n": "WIRED NEWS",
+   "e": "timeout"
+  },
+  {
+   "u": "http://orangecounty.craigslist.org/search/index.rss",
+   "n": "craigslist |  in orange county",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.netbuffalo.net/ffeed/makefulltextfeed.php?url=nakata.net/rnp/&max=5&links=preserve&exc=&submit=Create%20Feed",
+   "n": "Image",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://www.titech.ac.jp/public/news/rss.xml",
+   "n": "【一般・社会人向け 最新情報】 更新情報　--- 東京工業大学",
+   "e": "HTTP 404"
+  },
+  {
+   "u": "http://blogs.akamai.com/atom.xml",
+   "n": "The Akamai Blog",
+   "e": "HTTP 403"
+  },
+  {
+   "u": "https://www.schoolofliteracy.com/infoblog/",
+   "n": "https://www.schoolofliteracy.com/infoblog/",
+   "e": "RSS/Atomではありません（text/html）"
+  },
+  {
+   "u": "https://www.schoolofliteracy.com",
+   "n": "https://www.schoolofliteracy.com",
+   "e": "RSS/Atomではありません（text/html）"
+  }
+ ]
+}
